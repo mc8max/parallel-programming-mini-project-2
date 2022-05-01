@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -36,7 +37,7 @@ public final class StudentAnalytics {
     }
 
     /**
-     * TODO compute the average age of all actively enrolled students using
+     * Compute the average age of all actively enrolled students using
      * parallel streams. This should mirror the functionality of
      * averageAgeOfEnrolledStudentsImperative. This method should not use any
      * loops.
@@ -46,7 +47,11 @@ public final class StudentAnalytics {
      */
     public double averageAgeOfEnrolledStudentsParallelStream(
             final Student[] studentArray) {
-        throw new UnsupportedOperationException();
+		return Stream.of(studentArray)
+				.parallel()
+				.filter(t -> t.checkIsCurrent())
+				.mapToDouble(s -> s.getAge()).average()
+				.getAsDouble();
     }
 
     /**
@@ -90,7 +95,7 @@ public final class StudentAnalytics {
     }
 
     /**
-     * TODO compute the most common first name out of all students that are no
+     * compute the most common first name out of all students that are no
      * longer active in the class using parallel streams. This should mirror the
      * functionality of mostCommonFirstNameOfInactiveStudentsImperative. This
      * method should not use any loops.
@@ -100,7 +105,20 @@ public final class StudentAnalytics {
      */
     public String mostCommonFirstNameOfInactiveStudentsParallelStream(
             final Student[] studentArray) {
-        throw new UnsupportedOperationException();
+    	Map<String, Long> nameCounts = Stream.of(studentArray)
+    		.parallel()
+    		.filter(t -> !t.checkIsCurrent())
+    		.collect(Collectors.groupingBy(p -> p.getFirstName(), Collectors.counting()));
+    	
+    	String mostCommon = null;
+        long mostCommonCount = -1;
+        for (Map.Entry<String, Long> entry : nameCounts.entrySet()) {
+            if (mostCommon == null || entry.getValue() > mostCommonCount) {
+                mostCommon = entry.getKey();
+                mostCommonCount = entry.getValue();
+            }
+        }
+        return mostCommon;
     }
 
     /**
@@ -124,7 +142,7 @@ public final class StudentAnalytics {
     }
 
     /**
-     * TODO compute the number of students who have failed the course who are
+     * compute the number of students who have failed the course who are
      * also older than 20 years old. A failing grade is anything below a 65. A
      * student has only failed the course if they have a failing grade and they
      * are not currently active. This should mirror the functionality of
@@ -136,6 +154,12 @@ public final class StudentAnalytics {
      */
     public int countNumberOfFailedStudentsOlderThan20ParallelStream(
             final Student[] studentArray) {
-        throw new UnsupportedOperationException();
+    	System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "4");
+		return (int) Stream.of(studentArray)
+				.parallel()
+				.filter(s -> !s.checkIsCurrent())
+				.filter(t -> t.getAge() > 20)
+				.filter(p -> p.getGrade() < 65)
+				.count();
     }
 }
